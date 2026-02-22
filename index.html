@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Comparador Colaborativo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
+
+    .produto {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🌍 Comparador Colaborativo</h2>
+
+<input type="text" id="nomeProduto" placeholder="Nome do produto">
+<input type="text" id="nomeMercado" placeholder="Nome do mercado">
+<input type="number" id="precoProduto" placeholder="Preço">
+
+<button onclick="salvarProduto()">Salvar</button>
+
+<h3>📡 Produtos Online:</h3>
+<div id="lista"></div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// COLE AQUI AS CREDENCIAIS DO FIREBASE
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_DOMINIO.firebaseapp.com",
+  databaseURL: "SUA_DATABASE_URL",
+  projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_BUCKET",
+  messagingSenderId: "SEU_ID",
+  appId: "SEU_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+window.salvarProduto = function() {
+
+  const nome = document.getElementById("nomeProduto").value;
+  const mercado = document.getElementById("nomeMercado").value;
+  const preco = document.getElementById("precoProduto").value;
+
+  if (!nome || !mercado || !preco) {
+    alert("Preencha todos os campos");
+    return;
+  }
+
+  push(ref(database, "produtos"), {
+    nome: nome,
+    mercado: mercado,
+    preco: preco,
+    data: new Date().toLocaleString()
+  });
+
+  document.getElementById("nomeProduto").value = "";
+  document.getElementById("nomeMercado").value = "";
+  document.getElementById("precoProduto").value = "";
+}
+
+onValue(ref(database, "produtos"), (snapshot) => {
+
+  const dados = snapshot.val();
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  for (let id in dados) {
+    lista.innerHTML += `
+      <div class="produto">
+        <strong>${dados[id].nome}</strong><br>
+        Mercado: ${dados[id].mercado}<br>
+        Preço: R$ ${dados[id].preco}
+      </div>
+    `;
+  }
+});
+
+</script>
+
+</body>
+</html>
