@@ -1,240 +1,225 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Comparador Inteligente</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+import { useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Trash2, Plus, ShoppingCart, CheckCircle2, TrendingDown, Store } from "lucide-react";
 
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #4f46e5, #3b82f6);
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-    }
+// 1. Simulação do Banco de Dados Colaborativo (Preços lançados por outros usuários)
+const BANCO_DE_DADOS_PRODUTOS = [
+  { id: 101, nome: "Arroz 5kg", precos: { 1: 22.90, 2: 24.50, 3: 21.90, 4: 25.00 } },
+  { id: 102, nome: "Feijão 1kg", precos: { 1: 8.50, 2: 7.90, 3: 8.90, 4: 7.50 } },
+  { id: 103, nome: "Óleo de Soja", precos: { 1: 5.90, 2: 6.20, 3: 5.50, 4: 6.00 } },
+  { id: 104, nome: "Leite 1L", precos: { 1: 4.50, 2: 4.30, 3: 4.80, 4: 4.20 } },
+];
 
-    .container {
-      background: white;
-      width: 100%;
-      max-width: 700px;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
+const MERCADOS_DISPONIVEIS = [
+  { id: 1, nome: "Atacadão Extra" },
+  { id: 2, nome: "Supermercado Dia" },
+  { id: 3, nome: "Carrefour" },
+  { id: 4, nome: "Mercadinho Local" },
+];
 
-    h2 { text-align: center; margin-bottom: 20px; }
-    h3 { margin-top: 20px; }
+export default function Home() {
+  // Estado: Mercados que o usuário selecionou para comparar
+  const [mercadosSelecionados, setMercadosSelecionados] = useState<number[]>([1, 2]); 
+  
+  // Estado: Lista de compras do usuário
+  const [listaCompras, setListaCompras] = useState<{ id: number, nome: string }[]>([]);
+  const [novoItemNome, setNovoItemNome] = useState("");
 
-    input {
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      width: 100%;
-      box-sizing: border-box;
-    }
+  const toggleMercado = (id: number) => {
+    setMercadosSelecionados(prev => 
+      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+    );
+  };
 
-    button {
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      margin-top: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      width: 100%;
-      transition: 0.3s;
-    }
+  const adicionarItemLista = () => {
+    if (!novoItemNome.trim()) return;
+    const novoId = Date.now();
+    setListaCompras(prev => [...prev, { id: novoId, nome: novoItemNome }]);
+    setNovoItemNome("");
+  };
 
-    .btn-add { background-color: #3b82f6; color: white; }
-    .btn-add:hover { background-color: #2563eb; }
+  const removerItem = (id: number) => {
+    setListaCompras(prev => prev.filter(item => item.id !== id));
+  };
 
-    .btn-remove { background-color: #ef4444; color: white; }
-    .btn-remove:hover { background-color: #dc2626; }
+  // Motor de Cálculo Inteligente
+  const resultado = useMemo(() => {
+    if (listaCompras.length === 0 || mercadosSelecionados.length === 0) return null;
 
-    .btn-calc { background-color: #10b981; color: white; }
-    .btn-calc:hover { background-color: #059669; }
+    let totalInteligente = 0;
+    const totaisPorMercado: { [key: number]: number } = {};
+    mercadosSelecionados.forEach(id => totaisPorMercado[id] = 0);
 
-    .produto {
-      background: #f9fafb;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #e5e7eb;
-    }
+    const itemsCalculados = listaCompras.map(itemCompra => {
+      // Tenta achar o produto no "banco de dados". Se não achar, simula um preço genérico para demonstração.
+      const produtoDB = BANCO_DE_DADOS_PRODUTOS.find(p => p.nome.toLowerCase() === itemCompra.nome.toLowerCase());
+      
+      let menorPreco = Infinity;
+      let melhorMercadoId = -1;
 
-    .resultado {
-      margin-top: 20px;
-      background: #111827;
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-    }
+      mercadosSelecionados.forEach(mercadoId => {
+        // Pega do DB ou gera um preço aleatório (mock) entre R$ 5 e R$ 15 para produtos novos
+        const preco = produtoDB?.precos[mercadoId as keyof typeof produtoDB.precos] || (Math.random() * 10 + 5);
+        
+        totaisPorMercado[mercadoId] += preco;
 
-    .remover-btn {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 5px 8px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 5px;
-      width: auto;
-    }
+        if (preco < menorPreco) {
+          menorPreco = preco;
+          melhorMercadoId = mercadoId;
+        }
+      });
 
-    hr { margin: 20px 0; }
-  </style>
-</head>
-<body>
-
-<div class="container">
-
-  <h2>💰 Comparador Inteligente</h2>
-
-  <h3>🏬 Nome dos Mercados</h3>
-  <div id="mercadosContainer"></div>
-
-  <button class="btn-add" onclick="adicionarMercado()">➕ Adicionar Mercado</button>
-
-  <hr>
-
-  <div id="listaProdutos"></div>
-
-  <button class="btn-add" onclick="adicionarProduto()">➕ Adicionar Produto</button>
-  <button class="btn-calc" onclick="calcular()">📊 Calcular Melhor Estratégia</button>
-
-  <div class="resultado" id="resultado"></div>
-
-</div>
-
-<script>
-
-let contadorProdutos = 0;
-let contadorMercados = 0;
-
-function adicionarMercado(nomePadrao = "") {
-  contadorMercados++;
-
-  let div = document.createElement("div");
-  div.id = "mercadoDiv" + contadorMercados;
-
-  div.innerHTML = `
-    <input type="text" id="mercado${contadorMercados}" 
-    placeholder="Nome do Mercado ${contadorMercados}" 
-    value="${nomePadrao}"
-    oninput="atualizarProdutos()">
-    <button class="remover-btn" onclick="removerMercado(${contadorMercados})">Remover</button>
-  `;
-
-  document.getElementById("mercadosContainer").appendChild(div);
-  atualizarProdutos();
-}
-
-function removerMercado(id) {
-  let div = document.getElementById("mercadoDiv" + id);
-  if (div) div.remove();
-  atualizarProdutos();
-}
-
-function adicionarProduto() {
-  contadorProdutos++;
-
-  let div = document.createElement("div");
-  div.className = "produto";
-  div.id = "produtoDiv" + contadorProdutos;
-
-  div.innerHTML = `
-    <button class="remover-btn" onclick="removerProduto(${contadorProdutos})">
-      Remover Produto
-    </button>
-    <div id="conteudoProduto${contadorProdutos}"></div>
-  `;
-
-  document.getElementById("listaProdutos").appendChild(div);
-  atualizarProdutos();
-}
-
-function removerProduto(id) {
-  let div = document.getElementById("produtoDiv" + id);
-  if (div) div.remove();
-}
-
-function atualizarProdutos() {
-
-  let mercados = document.querySelectorAll("#mercadosContainer input");
-
-  for (let i = 1; i <= contadorProdutos; i++) {
-
-    let conteudo = document.getElementById("conteudoProduto" + i);
-    if (!conteudo) continue;
-
-    let html = `
-      <h3>🛒 Produto ${i}</h3>
-      <input type="text" id="nome${i}" placeholder="Nome do produto">
-    `;
-
-    mercados.forEach((mercadoInput, index) => {
-      let nomeMercado = mercadoInput.value || "Mercado " + (index + 1);
-      html += `
-        <span>Preço ${nomeMercado}: </span>
-        <input type="number" id="p${index+1}_${i}" placeholder="Preço">
-      `;
-    });
-
-    conteudo.innerHTML = html;
-  }
-}
-
-function calcular() {
-
-  let mercados = document.querySelectorAll("#mercadosContainer input");
-  let totaisMercado = Array(mercados.length).fill(0);
-
-  let totalInteligente = 0;
-  let estrategia = "";
-
-  for (let i = 1; i <= contadorProdutos; i++) {
-
-    let nomeProduto = document.getElementById("nome" + i)?.value || "Produto " + i;
-
-    let menorPreco = Infinity;
-    let melhorMercado = "";
-
-    mercados.forEach((mercadoInput, index) => {
-
-      let preco = parseFloat(
-        document.getElementById("p" + (index+1) + "_" + i)?.value
-      ) || 0;
-
-      totaisMercado[index] += preco;
-
-      if (preco > 0 && preco < menorPreco) {
-        menorPreco = preco;
-        melhorMercado = mercadoInput.value || "Mercado " + (index + 1);
-      }
-    });
-
-    if (menorPreco !== Infinity) {
       totalInteligente += menorPreco;
-      estrategia += "✔ " + nomeProduto + " → " + melhorMercado + "<br>";
-    }
-  }
 
-  let menorTotalUnico = Math.min(...totaisMercado);
-  let economia = menorTotalUnico - totalInteligente;
+      return {
+        nomeProduto: itemCompra.nome,
+        melhorMercado: MERCADOS_DISPONIVEIS.find(m => m.id === melhorMercadoId)?.nome || "Desconhecido",
+        menorPreco
+      };
+    });
 
-  document.getElementById("resultado").innerHTML =
-    "<h3>📈 Melhor Estratégia:</h3>" +
-    estrategia +
-    "<br><strong>Total mínimo (dividindo compras): R$ " + totalInteligente.toFixed(2) + "</strong>" +
-    "<br>💰 Economia comparado ao melhor mercado único: R$ " + economia.toFixed(2);
+    const menorTotalUnico = Math.min(...Object.values(totaisPorMercado));
+    const economia = menorTotalUnico - totalInteligente;
+
+    return { items: itemsCalculados, totalInteligente, menorTotalUnico, economia };
+  }, [listaCompras, mercadosSelecionados]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8"> {/* pb-24 para espaço do botão fixo no mobile */}
+      <div className="max-w-md mx-auto lg:max-w-4xl pt-8 px-4">
+        
+        <header className="mb-8 text-center lg:text-left">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Comparador Inteligente</h1>
+          <p className="text-slate-500 text-sm">Monte sua lista e descubra onde comprar mais barato.</p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Coluna 1: Configurações e Lista */}
+          <div className="space-y-6">
+            
+            {/* Seção 1: Seleção de Mercados */}
+            <Card className="p-5 border-slate-200 shadow-sm rounded-2xl">
+              <h2 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <Store className="w-5 h-5 text-blue-600" />
+                Mercados a comparar
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {MERCADOS_DISPONIVEIS.map(mercado => {
+                  const isSelected = mercadosSelecionados.includes(mercado.id);
+                  return (
+                    <button
+                      key={mercado.id}
+                      onClick={() => toggleMercado(mercado.id)}
+                      className={`p-3 rounded-xl border text-sm font-medium transition-all text-left flex items-center justify-between
+                        ${isSelected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600'}`}
+                    >
+                      <span className="truncate pr-2">{mercado.nome}</span>
+                      {isSelected && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Seção 2: Lista de Compras */}
+            <Card className="p-5 border-slate-200 shadow-sm rounded-2xl">
+              <h2 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-blue-600" />
+                Sua Lista
+              </h2>
+              
+              <div className="flex gap-2 mb-4">
+                <Input
+                  type="text"
+                  value={novoItemNome}
+                  onChange={(e) => setNovoItemNome(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && adicionarItemLista()}
+                  placeholder="Ex: Arroz 5kg"
+                  className="text-base h-12 rounded-xl" /* text-base obrigatório para iPhone não dar zoom */
+                />
+                <Button onClick={adicionarItemLista} className="h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {listaCompras.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">Sua lista está vazia.</p>
+                ) : (
+                  listaCompras.map(item => (
+                    <div key={item.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="text-slate-700 font-medium">{item.nome}</span>
+                      <Button variant="ghost" size="icon" onClick={() => removerItem(item.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {/* Coluna 2: Resultados */}
+          <div>
+            {resultado ? (
+              <Card className="p-6 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 shadow-sm rounded-2xl sticky top-6">
+                <h3 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
+                  <TrendingDown className="w-6 h-6" />
+                  Sua Estratégia de Compra
+                </h3>
+                
+                <div className="space-y-3 mb-6 max-h-[40vh] overflow-y-auto pr-2">
+                  {resultado.items.map((item, idx) => (
+                    <div key={idx} className="p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-green-100/50 flex justify-between items-center">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{item.nomeProduto}</p>
+                        <p className="text-xs text-slate-500">Comprar no: <span className="text-green-700 font-medium">{item.melhorMercado}</span></p>
+                      </div>
+                      <p className="text-base font-bold text-green-700">R$ {item.menorPreco.toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-white rounded-xl p-4 border border-green-100 space-y-3 shadow-sm">
+                   <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Total em 1 mercado:</span>
+                    <span className="font-semibold text-slate-400 line-through">R$ {resultado.menorTotalUnico.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-base">
+                    <span className="font-semibold text-slate-700">Comprando dividido:</span>
+                    <span className="font-bold text-slate-900">R$ {resultado.totalInteligente.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                    <span className="text-sm font-bold text-green-700 uppercase tracking-wider">Sua Economia</span>
+                    <span className="text-xl font-black text-green-600">R$ {resultado.economia.toFixed(2)}</span>
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-slate-100/50 rounded-2xl border-2 border-dashed border-slate-200">
+                <ShoppingCart className="w-12 h-12 text-slate-300 mb-3" />
+                <p className="text-slate-500">Adicione produtos na lista e selecione os mercados para ver a mágica acontecer.</p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Mobile Sticky Footer (Botão Flutuante) - Só aparece em telas pequenas se precisar de CTA */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <Button 
+          className="w-full h-14 text-lg rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg shadow-blue-600/20"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          disabled={listaCompras.length === 0}
+        >
+          {listaCompras.length === 0 ? "Adicione itens à lista" : "Ver Economia"}
+        </Button>
+      </div>
+
+    </div>
+  );
 }
-
-// cria 2 mercados iniciais
-adicionarMercado();
-adicionarMercado();
-
-</script>
-
-</body>
-</html>
