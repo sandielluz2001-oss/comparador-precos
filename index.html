@@ -1,164 +1,239 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comparador de Preços</title>
+  <title>Comparador Inteligente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<style>
-body{
-    font-family: Arial, sans-serif;
-    background:#f4f4f4;
-    padding:20px;
-}
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #4f46e5, #3b82f6);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
 
-h1{
-    text-align:center;
-}
+    .container {
+      background: white;
+      width: 100%;
+      max-width: 700px;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
 
-.container{
-    max-width:1000px;
-    margin:auto;
-    background:white;
-    padding:20px;
-    border-radius:8px;
-    box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
+    h2 { text-align: center; margin-bottom: 20px; }
+    h3 { margin-top: 20px; }
 
-input,button{
-    padding:8px;
-    margin:5px 0;
-}
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
-button{
-    cursor:pointer;
-}
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      margin-top: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      transition: 0.3s;
+    }
 
-.market{
-    border:1px solid #ccc;
-    padding:10px;
-    margin-top:15px;
-    border-radius:6px;
-}
+    .btn-add { background-color: #3b82f6; color: white; }
+    .btn-add:hover { background-color: #2563eb; }
 
-.market h3{
-    margin:0 0 10px 0;
-}
+    .btn-remove { background-color: #ef4444; color: white; }
+    .btn-remove:hover { background-color: #dc2626; }
 
-.product{
-    display:flex;
-    gap:10px;
-    margin-bottom:8px;
-}
+    .btn-calc { background-color: #10b981; color: white; }
+    .btn-calc:hover { background-color: #059669; }
 
-.total{
-    font-weight:bold;
-    margin-top:10px;
-}
+    .produto {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #e5e7eb;
+    }
 
-.cheapest{
-    background:#d4edda;
-}
-.remove-btn{
-    background:#dc3545;
-    color:white;
-    border:none;
-    padding:5px 8px;
-    border-radius:4px;
-}
-.add-btn{
-    background:#007bff;
-    color:white;
-    border:none;
-    padding:8px 12px;
-    border-radius:4px;
-}
-</style>
+    .resultado {
+      margin-top: 20px;
+      background: #111827;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .remover-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 5px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 5px;
+      width: auto;
+    }
+
+    hr { margin: 20px 0; }
+  </style>
 </head>
-
 <body>
-
-<h1>Comparador de Preços</h1>
 
 <div class="container">
 
-    <input type="text" id="marketName" placeholder="Nome do mercado">
-    <button class="add-btn" onclick="addMarket()">Adicionar Mercado</button>
+  <h2>💰 Comparador Inteligente</h2>
 
-    <div id="markets"></div>
+  <h3>🏬 Nome dos Mercados</h3>
+  <div id="mercadosContainer"></div>
+
+  <button class="btn-add" onclick="adicionarMercado()">➕ Adicionar Mercado</button>
+
+  <hr>
+
+  <div id="listaProdutos"></div>
+
+  <button class="btn-add" onclick="adicionarProduto()">➕ Adicionar Produto</button>
+  <button class="btn-calc" onclick="calcular()">📊 Calcular Melhor Estratégia</button>
+
+  <div class="resultado" id="resultado"></div>
 
 </div>
 
 <script>
-let markets = [];
 
-function addMarket(){
-    const name = document.getElementById("marketName").value;
-    if(!name) return alert("Digite o nome do mercado");
+let contadorProdutos = 0;
+let contadorMercados = 0;
 
-    markets.push({name:name, products:[]});
-    document.getElementById("marketName").value="";
-    render();
+function adicionarMercado(nomePadrao = "") {
+  contadorMercados++;
+
+  let div = document.createElement("div");
+  div.id = "mercadoDiv" + contadorMercados;
+
+  div.innerHTML = `
+    <input type="text" id="mercado${contadorMercados}" 
+    placeholder="Nome do Mercado ${contadorMercados}" 
+    value="${nomePadrao}"
+    oninput="atualizarProdutos()">
+    <button class="remover-btn" onclick="removerMercado(${contadorMercados})">Remover</button>
+  `;
+
+  document.getElementById("mercadosContainer").appendChild(div);
+  atualizarProdutos();
 }
 
-function removeMarket(index){
-    markets.splice(index,1);
-    render();
+function removerMercado(id) {
+  let div = document.getElementById("mercadoDiv" + id);
+  if (div) div.remove();
+  atualizarProdutos();
 }
 
-function addProduct(marketIndex){
-    const productName = prompt("Nome do produto:");
-    const price = parseFloat(prompt("Preço:"));
+function adicionarProduto() {
+  contadorProdutos++;
 
-    if(!productName || isNaN(price)) return;
+  let div = document.createElement("div");
+  div.className = "produto";
+  div.id = "produtoDiv" + contadorProdutos;
 
-    markets[marketIndex].products.push({name:productName, price:price});
-    render();
+  div.innerHTML = `
+    <button class="remover-btn" onclick="removerProduto(${contadorProdutos})">
+      Remover Produto
+    </button>
+    <div id="conteudoProduto${contadorProdutos}"></div>
+  `;
+
+  document.getElementById("listaProdutos").appendChild(div);
+  atualizarProdutos();
 }
 
-function removeProduct(marketIndex, productIndex){
-    markets[marketIndex].products.splice(productIndex,1);
-    render();
+function removerProduto(id) {
+  let div = document.getElementById("produtoDiv" + id);
+  if (div) div.remove();
 }
 
-function calculateTotal(products){
-    return products.reduce((sum,p)=>sum+p.price,0);
-}
+function atualizarProdutos() {
 
-function render(){
-    const container = document.getElementById("markets");
-    container.innerHTML="";
+  let mercados = document.querySelectorAll("#mercadosContainer input");
 
-    let totals = markets.map(m=>calculateTotal(m.products));
-    let cheapest = Math.min(...totals);
+  for (let i = 1; i <= contadorProdutos; i++) {
 
-    markets.forEach((market, i)=>{
-        const div = document.createElement("div");
-        div.className="market";
+    let conteudo = document.getElementById("conteudoProduto" + i);
+    if (!conteudo) continue;
 
-        if(totals[i]===cheapest && totals.length>0){
-            div.classList.add("cheapest");
-        }
+    let html = `
+      <h3>🛒 Produto ${i}</h3>
+      <input type="text" id="nome${i}" placeholder="Nome do produto">
+    `;
 
-        let html = `<h3>${market.name}</h3>`;
-        html += `<button class="add-btn" onclick="addProduct(${i})">Adicionar Produto</button>`;
-        html += `<button class="remove-btn" onclick="removeMarket(${i})">Remover Mercado</button>`;
-
-        market.products.forEach((product, j)=>{
-            html += `
-                <div class="product">
-                    <span>${product.name} - R$ ${product.price.toFixed(2)}</span>
-                    <button class="remove-btn" onclick="removeProduct(${i},${j})">X</button>
-                </div>
-            `;
-        });
-
-        html += `<div class="total">Total: R$ ${totals[i].toFixed(2)}</div>`;
-
-        div.innerHTML=html;
-        container.appendChild(div);
+    mercados.forEach((mercadoInput, index) => {
+      let nomeMercado = mercadoInput.value || "Mercado " + (index + 1);
+      html += `
+        <span>Preço ${nomeMercado}: </span>
+        <input type="number" id="p${index+1}_${i}" placeholder="Preço">
+      `;
     });
+
+    conteudo.innerHTML = html;
+  }
 }
+
+function calcular() {
+
+  let mercados = document.querySelectorAll("#mercadosContainer input");
+  let totaisMercado = Array(mercados.length).fill(0);
+
+  let totalInteligente = 0;
+  let estrategia = "";
+
+  for (let i = 1; i <= contadorProdutos; i++) {
+
+    let nomeProduto = document.getElementById("nome" + i)?.value || "Produto " + i;
+
+    let menorPreco = Infinity;
+    let melhorMercado = "";
+
+    mercados.forEach((mercadoInput, index) => {
+
+      let preco = parseFloat(
+        document.getElementById("p" + (index+1) + "_" + i)?.value
+      ) || 0;
+
+      totaisMercado[index] += preco;
+
+      if (preco > 0 && preco < menorPreco) {
+        menorPreco = preco;
+        melhorMercado = mercadoInput.value || "Mercado " + (index + 1);
+      }
+    });
+
+    if (menorPreco !== Infinity) {
+      totalInteligente += menorPreco;
+      estrategia += "✔ " + nomeProduto + " → " + melhorMercado + "<br>";
+    }
+  }
+
+  let menorTotalUnico = Math.min(...totaisMercado);
+  let economia = menorTotalUnico - totalInteligente;
+
+  document.getElementById("resultado").innerHTML =
+    "<h3>📈 Melhor Estratégia:</h3>" +
+    estrategia +
+    "<br><strong>Total mínimo (dividindo compras): R$ " + totalInteligente.toFixed(2) + "</strong>" +
+    "<br>💰 Economia comparado ao melhor mercado único: R$ " + economia.toFixed(2);
+}
+
+// cria 2 mercados iniciais
+adicionarMercado();
+adicionarMercado();
+
 </script>
 
 </body>
