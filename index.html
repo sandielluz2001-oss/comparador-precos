@@ -53,7 +53,7 @@ export default function Home() {
     mercadosSelecionados.forEach(id => totaisPorMercado[id] = 0);
 
     const itemsCalculados = listaCompras.map(itemCompra => {
-      // Tenta achar o produto no "banco de dados". Se não achar, simula um preço genérico para demonstração.
+      // Tenta achar o produto no "banco de dados"
       const produtoDB = BANCO_DE_DADOS_PRODUTOS.find(p => p.nome.toLowerCase() === itemCompra.nome.toLowerCase());
       
       let menorPreco = Infinity;
@@ -87,7 +87,7 @@ export default function Home() {
   }, [listaCompras, mercadosSelecionados]);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8"> {/* pb-24 para espaço do botão fixo no mobile */}
+    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8">
       <div className="max-w-md mx-auto lg:max-w-4xl pt-8 px-4">
         
         <header className="mb-8 text-center lg:text-left">
@@ -138,7 +138,7 @@ export default function Home() {
                   onChange={(e) => setNovoItemNome(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && adicionarItemLista()}
                   placeholder="Ex: Arroz 5kg"
-                  className="text-base h-12 rounded-xl" /* text-base obrigatório para iPhone não dar zoom */
+                  className="text-base h-12 rounded-xl"
                 />
                 <Button onClick={adicionarItemLista} className="h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-5 h-5" />
@@ -209,7 +209,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Mobile Sticky Footer (Botão Flutuante) - Só aparece em telas pequenas se precisar de CTA */}
+      {/* Mobile Sticky Footer */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <Button 
           className="w-full h-14 text-lg rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg shadow-blue-600/20"
